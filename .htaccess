@@ -1,0 +1,24 @@
+RewriteEngine On
+
+# السماح للملفات الأصلية
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# إزالة .php
+RewriteCond %{REQUEST_FILENAME}.php -f
+RewriteRule ^(.*)$ $1.php [L]
+
+# روابط API
+RewriteRule ^products$ products.php [L]
+RewriteRule ^product/([0-9]+)$ product.php?id=$1 [L]
+RewriteRule ^product/add$ add.php [L]
+RewriteRule ^product/delete/([0-9]+)$ delete.php?id=$1 [L]
+
+# حماية ملفات
+<Files "config.php">
+    Deny from all
+</Files>
+<FilesMatch "^\.env">
+    Deny from all
+</FilesMatch>
