@@ -2,10 +2,11 @@
 
 header("Access-Control-Max-Age: 3600");
 header("Access-Control-Allow-Origin: *");
-header("Access-Control-Allow-Methods: DELETE");
+header("Access-Control-Allow-Methods: GET");
 header("Content-Type: application/json; charset=UTF-8");
 header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
-// التحقق من نوع الطلب
+
+// السماح فقط GET
 if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
     http_response_code(405);
     echo json_encode([
@@ -15,8 +16,23 @@ if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
     exit;
 }
 
-// التحقق من وجود trip_id
-if (!isset($_GET['trip_id']) || !is_numeric($_GET['trip_id']) || $_GET['trip_id'] < 1) {
+include "../config/connected.php";
+
+// قراءة JSON (حتى لو GET)
+$data = json_decode(file_get_contents("php://input"));
+
+// استخراج trip_id
+$trip_id = null;
+
+if (isset($data->trip_id)) {
+    $trip_id = $data->trip_id;
+} elseif (isset($_GET['trip_id'])) {
+    // fallback احتياطي
+    $trip_id = $_GET['trip_id'];
+}
+
+// التحقق
+if (!isset($trip_id) || !is_numeric($trip_id) || $trip_id < 1) {
     http_response_code(400);
     echo json_encode([
         "status" => "error",
@@ -25,13 +41,10 @@ if (!isset($_GET['trip_id']) || !is_numeric($_GET['trip_id']) || $_GET['trip_id'
     exit;
 }
 
-$trip_id = (int)$_GET['trip_id'];
-
-include "../config/connected.php";
+$trip_id = (int)$trip_id;
 
 try {
 
-    // البحث باستخدام trip_id
     $stmt = $pdo->prepare("SELECT * FROM trips WHERE trip_id = ?");
     $stmt->execute([$trip_id]);
 

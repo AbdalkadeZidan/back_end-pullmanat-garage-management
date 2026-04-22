@@ -29,9 +29,12 @@ if (!isset($pdo)) {
 }
 
 // أخذ user_id
-$user_id = $_GET['user_id'] ?? null;
+// $user_id = $_GET['user_id'] ?? null;
+$data = json_decode(file_get_contents("php://input"));
 
-if (!$user_id) {
+$id = $data->user_id;
+
+if (!isset($id) || !is_numeric($id)) {
     http_response_code(400);
     echo json_encode([
         "status" => "error",
@@ -54,7 +57,7 @@ try {
             LIMIT 1";
 
     $stmt = $pdo->prepare($sql);
-    $stmt->execute([':id' => $user_id]);
+    $stmt->execute([':id' => $id]);
 
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
