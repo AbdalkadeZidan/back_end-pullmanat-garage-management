@@ -27,10 +27,21 @@ if (!isset($pdo)) {
     exit;
 }
 
-// أخذ id من الرابط
-$employee_id = $_GET['employee_id'] ?? null;
+// قراءة JSON (حتى لو GET)
+$data = json_decode(file_get_contents("php://input"));
 
-if (!$employee_id) {
+// استخراج employee_id
+$employee_id = null;
+
+if (isset($data->employee_id)) {
+    $employee_id = $data->employee_id;
+} elseif (isset($_GET['employee_id'])) {
+    // fallback
+    $employee_id = $_GET['employee_id'];
+}
+
+// التحقق
+if (!isset($employee_id) || !is_numeric($employee_id)) {
     http_response_code(400);
     echo json_encode([
         "status" => "error",
@@ -38,6 +49,8 @@ if (!$employee_id) {
     ]);
     exit;
 }
+
+$employee_id = (int)$employee_id;
 
 try {
 
@@ -71,12 +84,12 @@ try {
     echo json_encode([
         "status" => "success",
         "data" => $employee
-    ]);
+    ], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
 
 } catch (PDOException $e) {
     http_response_code(500);
     echo json_encode([
         "status" => "error",
-        "message" => $e->getMessage()
+        "message" => "Database error"
     ]);
 }

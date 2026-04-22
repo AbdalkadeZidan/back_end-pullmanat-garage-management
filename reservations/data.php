@@ -2,9 +2,11 @@
 
 header("Access-Control-Max-Age: 3600");
 header("Access-Control-Allow-Origin: *");
-header("Access-Control-Allow-Methods: DELETE");
+header("Access-Control-Allow-Methods: GET");
 header("Content-Type: application/json; charset=UTF-8");
 header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
+
+// السماح فقط GET
 if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
     http_response_code(405);
     echo json_encode([
@@ -16,8 +18,22 @@ if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
 
 include "../config/connected.php";
 
-// أخذ user_id من الرابط ?user_id=1
-if (!isset($_GET['user_id'])) {
+// قراءة JSON (حتى لو GET)
+$data = json_decode(file_get_contents("php://input"));
+
+// استخراج user_id
+$user_id = null;
+
+if (isset($data->user_id)) {
+    $user_id = $data->user_id;
+} elseif (isset($_GET['user_id'])) {
+    // fallback احتياطي
+    $user_id = $_GET['user_id'];
+}
+
+// التحقق
+if (!isset($user_id) || !is_numeric($user_id)) {
+    http_response_code(400);
     echo json_encode([
         "status" => "error",
         "message" => "user_id is required"
@@ -25,7 +41,7 @@ if (!isset($_GET['user_id'])) {
     exit;
 }
 
-$user_id = $_GET['user_id'];
+$user_id = (int)$user_id;
 
 try {
 
@@ -36,7 +52,7 @@ try {
         ORDER BY res_id DESC
     ");
 
-    $stmt->bindParam(':user_id', $user_id);
+    $stmt->bindParam(':user_id', $user_id, PDO::PARAM_INT);
     $stmt->execute();
 
     $reservations = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -45,11 +61,12 @@ try {
         "status" => "success",
         "count" => count($reservations),
         "data" => $reservations
-    ]);
+    ], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
 
 } catch (PDOException $e) {
+    http_response_code(500);
     echo json_encode([
         "status" => "error",
-        "message" => $e->getMessage()
+        "message" => "Database error"
     ]);
 }
